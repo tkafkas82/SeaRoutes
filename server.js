@@ -7,6 +7,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const ais = require('./ais');
 
 const ROOT = path.join(__dirname, 'public');
 const PORT = process.env.PORT || 4900;
@@ -18,6 +19,14 @@ const TYPES = {
 
 http.createServer((req, res) => {
   let rel = decodeURIComponent(req.url.split('?')[0]);
+
+  // Live vessel feed (server-side so the aisstream key is never sent to the browser)
+  if (rel === '/api/vessels') {
+    const body = JSON.stringify(ais.getVessels());
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(body);
+  }
+
   if (rel === '/') rel = '/index.html';
   const file = path.normalize(path.join(ROOT, rel));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end('Forbidden'); }
@@ -26,4 +35,7 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
     res.end(buf);
   });
-}).listen(PORT, () => console.log(`SeaRoutes running → http://localhost:${PORT}`));
+}).listen(PORT, () => {
+  ais.start();
+  console.log(`SeaRoutes running → http://localhost:${PORT}`);
+});

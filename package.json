@@ -6,10 +6,18 @@
     "build": "node build/parse.js",
     "start": "node server.js"
   },
-  "keywords": ["ferries", "greece", "data.gov.gr", "pwa"],
+  "keywords": [
+    "ferries",
+    "greece",
+    "data.gov.gr",
+    "pwa"
+  ],
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
     "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "ws": "^8.21.1"
   }
 }

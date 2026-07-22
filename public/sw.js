@@ -1,8 +1,8 @@
 /* SeaRoutes service worker — offline-first cache of the static shell + data. */
-const CACHE = 'searoutes-v1';
+const CACHE = 'searoutes-v2';
 const ASSETS = [
   '.', 'index.html', 'styles.css', 'app.js',
-  'manifest.webmanifest', 'data/routes.json'
+  'manifest.webmanifest', 'data/routes.json', 'data/coastline.json'
 ];
 
 self.addEventListener('install', e => {
@@ -16,6 +16,8 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Never cache the live vessel feed — always go to the network.
+  if (new URL(e.request.url).pathname.startsWith('/api/')) return;
   // Cache-first with background refresh: the data is a static snapshot, so
   // serving from cache is fine and keeps it working fully offline.
   e.respondWith(

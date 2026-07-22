@@ -188,6 +188,138 @@ function card({ r, m }, via) {
   </article>`;
 }
 
+/* ================= LIVE MAP ================= */
+const live = { proj: null, drawn: false, sel: null, timer: null, vessels: [] };
+const KIND = {
+  passenger: { color: '#3ba0e8', label: 'Ferry / passenger' },
+  hsc:       { color: '#2fd0a6', label: 'High-speed craft' },
+  cargo:     { color: '#e8a53b', label: 'Cargo' },
+  tanker:    { color: '#b98be0', label: 'Tanker' },
+  other:     { color: '#8593b5', label: 'Other' }
+};
+const SVGNS = 'http://www.w3.org/2000/svg';
+const MAPW = 760, MAPH = 800;
+
+function ago(ts) {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return s + 's ago';
+  const m = Math.round(s / 60);
+  return m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago';
+}
+
+function buildProj(bbox) {
+  const pad = 16;
+  const kx = Math.cos(((bbox.n + bbox.s) / 2) * Math.PI / 180);
+  const gw = (bbox.e - bbox.w) * kx, gh = (bbox.n - bbox.s);
+  const scale = Math.min((MAPW - 2 * pad) / gw, (MAPH - 2 * pad) / gh);
+  const offX = (MAPW - gw * scale) / 2, offY = (MAPH - gh * scale) / 2;
+  return (lon, lat) => [offX + (lon - bbox.w) * kx * scale, offY + (bbox.n - lat) * scale];
+}
+
+async function drawCoast(bbox) {
+  let rings;
+  try { rings = await fetch('data/coastline.json').then(r => r.json()); } catch { rings = []; }
+  const svg = $('#seamap');
+  const overlaps = ring => {
+    let minLon = 1e9, maxLon = -1e9, minLat = 1e9, maxLat = -1e9;
+    for (const [lon, lat] of ring) { if (lon < minLon) minLon = lon; if (lon > maxLon) maxLon = lon; if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat; }
+    return !(maxLon < bbox.w - .2 || minLon > bbox.e + .2 || maxLat < bbox.s - .2 || minLat > bbox.n + .2);
+  };
+  let d = '';
+  for (const ring of rings) {
+    if (!overlaps(ring)) continue;
+    ring.forEach((p, i) => { const [x, y] = live.proj(p[0], p[1]); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); });
+    d += 'Z';
+  }
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', d); path.setAttribute('class', 'coast');
+  svg.appendChild(path);
+}
+
+function renderLegend() {
+  $('#mapLegend').innerHTML = Object.values(KIND)
+    .map(k => `<span><i style="background:${k.color}"></i>${k.label}</span>`).join('');
+}
+
+function drawVessels() {
+  const svg = $('#seamap');
+  svg.querySelectorAll('.vessel, .vessel-halo').forEach(n => n.remove());
+  for (const v of live.vessels) {
+    const [x, y] = live.proj(v.lon, v.lat);
+    if (x < -20 || x > MAPW + 20 || y < -20 || y > MAPH + 20) continue;
+    const dir = v.heading != null ? v.heading : (v.cog != null ? v.cog : 0);
+    const col = (KIND[v.kind] || KIND.other).color;
+    if (live.sel === v.mmsi) {
+      const halo = document.createElementNS(SVGNS, 'circle');
+      halo.setAttribute('cx', x.toFixed(1)); halo.setAttribute('cy', y.toFixed(1)); halo.setAttribute('r', '11');
+      halo.setAttribute('class', 'vessel-halo'); svg.appendChild(halo);
+    }
+    const g = document.createElementNS(SVGNS, 'path');
+    // arrow pointing north, rotated to course/heading
+    g.setAttribute('d', 'M0,-6.5 L4.2,6 L0,3.2 L-4.2,6 Z');
+    g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${dir.toFixed(0)})`);
+    g.setAttribute('fill', col);
+    g.setAttribute('class', 'vessel' + (live.sel === v.mmsi ? ' sel' : ''));
+    g.addEventListener('click', () => selectVessel(v.mmsi));
+    svg.appendChild(g);
+  }
+}
+
+function selectVessel(mmsi) {
+  live.sel = mmsi; drawVessels();
+  const v = live.vessels.find(x => x.mmsi === mmsi);
+  const card = $('#vesselCard');
+  if (!v) { card.hidden = true; return; }
+  const k = KIND[v.kind] || KIND.other;
+  card.innerHTML = `<button class="vclose" aria-label="Close">✕</button>
+    <div class="vk" style="color:${k.color}">${k.label}</div>
+    <h3>${v.name || 'Unknown vessel'}</h3>
+    <div class="vrow"><span>Speed</span><b>${v.sog != null ? v.sog.toFixed(1) + ' kn' : '—'}</b></div>
+    <div class="vrow"><span>Course</span><b>${v.cog != null ? Math.round(v.cog) + '°' : '—'}</b></div>
+    ${v.dest ? `<div class="vrow"><span>Destination</span><b>${v.dest}</b></div>` : ''}
+    <div class="vrow"><span>MMSI</span><b>${v.mmsi}</b></div>
+    <div class="vrow"><span>Seen</span><b>${ago(v.ts)}</b></div>`;
+  card.hidden = false;
+  card.querySelector('.vclose').onclick = () => { live.sel = null; card.hidden = true; drawVessels(); };
+}
+
+async function refreshVessels() {
+  let data;
+  try { data = await fetch('/api/vessels').then(r => r.json()); }
+  catch {
+    $('#liveStatus').className = 'live-status';
+    $('#liveStatus').innerHTML = `<span class="dot"></span>Live map needs the local server — run <b>npm start</b>.`;
+    return;
+  }
+  live.vessels = data.vessels || [];
+  if (!live.drawn && data.bbox) { live.proj = buildProj(data.bbox); await drawCoast(data.bbox); renderLegend(); live.drawn = true; }
+  if (live.sel && !live.vessels.some(v => v.mmsi === live.sel)) { live.sel = null; $('#vesselCard').hidden = true; }
+  drawVessels();
+  if (live.sel) selectVessel(live.sel);
+  const st = $('#liveStatus');
+  const src = data.source;
+  st.className = 'live-status ' + (src === 'live' ? 'live' : (src === 'demo' ? 'demo' : ''));
+  const srcTxt = src === 'live' ? 'live' : src === 'demo' ? 'demo data (no API key)' : 'connecting…';
+  st.innerHTML = `<span class="dot"></span><b>${live.vessels.length}</b>&nbsp;vessels · ${srcTxt} · ${ago(data.updated)}`;
+}
+
+function startLive() {
+  refreshVessels();
+  clearInterval(live.timer);
+  live.timer = setInterval(refreshVessels, 8000);
+}
+function stopLive() { clearInterval(live.timer); live.timer = null; }
+
+/* ---------- view switching ---------- */
+function showView(v) {
+  const liveOn = v === 'live';
+  $('#liveView').hidden = !liveOn;
+  $('#routesView').hidden = liveOn;
+  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('on', t.dataset.view === v));
+  localStorage.setItem('sr-view', v);
+  if (liveOn) startLive(); else { stopLive(); render(); }
+}
+
 /* ---------- wiring ---------- */
 function bind() {
   const from = $('#fromSel'), to = $('#toSel'), day = $('#daySel'), sort = $('#sortSel');
@@ -225,12 +357,15 @@ async function init() {
     $('#results').innerHTML = '<div class="empty">Could not load route data.</div>';
     return;
   }
-  $('#dataYear').textContent = state.data.sourceYear;
   $('#footNote').textContent =
-    `${state.data.routes.length} scheduled sailings · ${state.data.operators.length} operators · data ${state.data.sourceYear}.`;
+    `Routes reference: ${state.data.routes.length} sailings · ${state.data.operators.length} operators · data ${state.data.sourceYear}.`;
   readUrl();
   bind();
-  render();
+
+  document.querySelectorAll('#tabs .tab').forEach(t => t.onclick = () => showView(t.dataset.view));
+  // A shared route link (?from=..) opens the routes tab; otherwise the live map.
+  const wantRoutes = location.search.includes('from=') || location.search.includes('to=');
+  showView(wantRoutes ? 'routes' : (localStorage.getItem('sr-view') || 'live'));
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }

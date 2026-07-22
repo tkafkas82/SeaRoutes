@@ -1,7 +1,7 @@
 {
-  "name": "SeaRoutes — Greek ferry routes & fares",
+  "name": "SeaRoutes — live Greek ferries & routes",
   "short_name": "SeaRoutes",
-  "description": "Search Greek ferry routes, schedules and fares. Open data from data.gov.gr.",
+  "description": "Live Western Cyclades ferry positions (AIS) plus a route & fare reference. aisstream.io + data.gov.gr.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0b1020",

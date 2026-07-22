@@ -51,6 +51,59 @@ body {
 }
 .brand h1 { margin: 0; font-size: 19px; letter-spacing: .3px; }
 .tagline { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.tabs { display: flex; gap: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 3px; }
+.tab { background: transparent; border: 0; color: var(--muted); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+.tab.on { background: var(--panel-2); color: var(--text); }
+.tab:not(.on):hover { color: var(--text); }
+.view { flex: 1; display: flex; flex-direction: column; }
+.view[hidden] { display: none; } /* explicit display would otherwise defeat [hidden] */
+
+/* ---- live map ---- */
+#liveView { max-width: 1100px; width: 100%; margin: 0 auto; padding: 14px 20px 24px; }
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; margin: 0 auto 10px; max-width: 720px; width: 100%; }
+.live-status { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.live-status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.live-status.live .dot { background: #34d17a; box-shadow: 0 0 8px #34d17a; animation: pulse 2s infinite; }
+.live-status.demo .dot { background: #e8a53b; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.map-wrap {
+  position: relative; border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow);
+  background: radial-gradient(120% 120% at 30% 10%, #10203f, #0a1226);
+  max-width: 720px; width: 100%; margin: 0 auto;
+}
+:root[data-theme="light"] .map-wrap { background: radial-gradient(120% 120% at 30% 10%, #cfe0f5, #bcd2ee); }
+#seamap { width: 100%; height: auto; display: block; }
+.coast { fill: #1a2947; stroke: #2c3d63; stroke-width: .8; }
+:root[data-theme="light"] .coast { fill: #eef3fb; stroke: #b9c8e2; }
+.vessel { cursor: pointer; stroke: rgba(0,0,0,.4); stroke-width: .6; transition: transform .8s linear; }
+.vessel.sel { stroke: var(--text); stroke-width: 1.4; }
+.vessel-halo { fill: none; stroke: var(--text); stroke-width: 1.5; opacity: .8; }
+
+.map-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--muted); }
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.map-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.vessel-card {
+  position: absolute; top: 12px; right: 12px; width: 220px; z-index: 5;
+  background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow);
+}
+.vessel-card[hidden] { display: none; }
+.vessel-card h3 { margin: 0 0 2px; font-size: 15px; }
+.vessel-card .vk { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.vessel-card .vrow { display: flex; justify-content: space-between; font-size: 12.5px; margin-top: 6px; color: var(--muted); }
+.vessel-card .vrow b { color: var(--text); font-variant-numeric: tabular-nums; }
+.vessel-card .vclose { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 15px; }
+
+/* ---- 2023 reference banner ---- */
+.ref-banner {
+  max-width: 1100px; width: 100%; margin: 12px auto 0; padding: 10px 14px;
+  background: color-mix(in srgb, #e8a53b 12%, var(--panel)); border: 1px solid color-mix(in srgb, #e8a53b 40%, var(--line));
+  border-radius: 11px; font-size: 12.5px; color: var(--text); line-height: 1.4;
+}
+.ref-banner strong { color: #e8a53b; }
 .icon-btn {
   background: var(--panel); color: var(--text); border: 1px solid var(--line);
   width: 38px; height: 38px; border-radius: 10px; font-size: 17px; cursor: pointer;

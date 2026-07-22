@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy this file to config.json and paste your free aisstream.io API key. Get one at https://aisstream.io (sign up → API Keys). config.json is gitignored so the key stays local. Alternatively set the AISSTREAM_API_KEY environment variable.",
+  "aisstreamKey": "PASTE_YOUR_AISSTREAM_KEY_HERE"
+}

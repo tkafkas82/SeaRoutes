@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SeaRoutes — Greek ferry routes & fares</title>
-  <meta name="description" content="Search Greek ferry routes, schedules and fares across Blue Star, Hellenic Seaways, ANEK, Zante & Minoan. Open data from data.gov.gr." />
+  <title>SeaRoutes — live Greek ferries & routes</title>
+  <meta name="description" content="Live ferry positions in the Western Cyclades (AIS) plus a route & fare reference. Marine data via aisstream.io; routes from data.gov.gr." />
   <meta name="theme-color" content="#0b1020" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9B%B4%3C/text%3E%3C/svg%3E" />
@@ -16,50 +16,74 @@
       <span class="brand-mark">⛴</span>
       <div>
         <h1>Sea&nbsp;Routes</h1>
-        <p class="tagline">Greek ferry routes &amp; fares · <span id="dataYear">…</span> open data</p>
+        <p class="tagline">Live Western&nbsp;Cyclades ferries · routes reference</p>
       </div>
     </div>
-    <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    <div class="topbar-right">
+      <nav class="tabs" id="tabs">
+        <button class="tab on" data-view="live">Live map</button>
+        <button class="tab" data-view="routes">Routes</button>
+      </nav>
+      <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </div>
   </header>
 
-  <section class="controls">
-    <div class="port-row">
-      <label class="field">
-        <span class="field-lbl">From</span>
-        <select id="fromSel" aria-label="Departure port"></select>
-      </label>
-      <button id="swapBtn" class="swap" title="Swap" aria-label="Swap ports">⇄</button>
-      <label class="field">
-        <span class="field-lbl">To</span>
-        <select id="toSel" aria-label="Arrival port"></select>
-      </label>
+  <!-- ============ LIVE MAP ============ -->
+  <section id="liveView" class="view">
+    <div class="live-head">
+      <span class="live-status" id="liveStatus">Connecting…</span>
+      <div class="map-legend" id="mapLegend"></div>
     </div>
-    <div class="filter-row">
-      <div class="op-chips" id="opChips" aria-label="Operators"></div>
-      <label class="field day-field">
-        <span class="field-lbl">Day</span>
-        <select id="daySel" aria-label="Day of week"></select>
-      </label>
-      <label class="field sort-field">
-        <span class="field-lbl">Sort</span>
-        <select id="sortSel" aria-label="Sort by">
-          <option value="dep">Departure time</option>
-          <option value="dur">Duration</option>
-          <option value="fare">Fare</option>
-        </select>
-      </label>
-      <button id="clearBtn" class="ghost-btn">Clear</button>
+    <div class="map-wrap">
+      <svg id="seamap" viewBox="0 0 760 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Live vessel map of the Western Cyclades"></svg>
+      <div class="vessel-card" id="vesselCard" hidden></div>
     </div>
   </section>
 
-  <div class="statbar" id="statbar"></div>
-
-  <main class="results" id="results"></main>
+  <!-- ============ ROUTES (2023 reference) ============ -->
+  <div id="routesView" class="view" hidden>
+    <div class="ref-banner">
+      Schedules &amp; fares below are a <strong>2023 snapshot</strong> from data.gov.gr — treat as a rough
+      reference for <em>which lines connect where</em>, not current times/prices. Always verify with the operator.
+    </div>
+    <section class="controls">
+      <div class="port-row">
+        <label class="field">
+          <span class="field-lbl">From</span>
+          <select id="fromSel" aria-label="Departure port"></select>
+        </label>
+        <button id="swapBtn" class="swap" title="Swap" aria-label="Swap ports">⇄</button>
+        <label class="field">
+          <span class="field-lbl">To</span>
+          <select id="toSel" aria-label="Arrival port"></select>
+        </label>
+      </div>
+      <div class="filter-row">
+        <div class="op-chips" id="opChips" aria-label="Operators"></div>
+        <label class="field day-field">
+          <span class="field-lbl">Day</span>
+          <select id="daySel" aria-label="Day of week"></select>
+        </label>
+        <label class="field sort-field">
+          <span class="field-lbl">Sort</span>
+          <select id="sortSel" aria-label="Sort by">
+            <option value="dep">Departure time</option>
+            <option value="dur">Duration</option>
+            <option value="fare">Fare</option>
+          </select>
+        </label>
+        <button id="clearBtn" class="ghost-btn">Clear</button>
+      </div>
+    </section>
+    <div class="statbar" id="statbar"></div>
+    <main class="results" id="results"></main>
+  </div>
 
   <footer class="foot">
     <p id="footNote"></p>
-    <p>Source: <a href="https://data.gov.gr" target="_blank" rel="noopener">data.gov.gr</a> · National Access Point.
-       Schedules &amp; fares are a static snapshot — <strong>always verify with the operator before travel.</strong></p>
+    <p>Live positions via <a href="https://aisstream.io" target="_blank" rel="noopener">aisstream.io</a> (AIS) ·
+       routes from <a href="https://data.gov.gr" target="_blank" rel="noopener">data.gov.gr</a>.
+       Positions are as broadcast by vessels — <strong>not for navigation.</strong></p>
   </footer>
 
   <script src="app.js"></script>
