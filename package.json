@@ -1,0 +1,15 @@
+{
+  "name": "searoutes",
+  "version": "1.0.0",
+  "description": "Greek ferry routes & fares explorer — static PWA built on the data.gov.gr National Access Point maritime dataset.",
+  "scripts": {
+    "build": "node build/parse.js",
+    "start": "node server.js"
+  },
+  "keywords": ["ferries", "greece", "data.gov.gr", "pwa"],
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
