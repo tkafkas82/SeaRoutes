@@ -34,7 +34,11 @@ function loadKey() {
 const vessels = new Map();   // mmsi -> { mmsi, name, type, lat, lon, sog, cog, heading, nav, ts }
 let connected = false;
 let ws = null;
-let backoff = 2000;
+// aisstream is a flaky beta: the WS handshake often 503s / hangs up and then
+// succeeds a couple of tries later. Retry briskly with a low cap so we catch an
+// available window quickly rather than backing off for a minute.
+let backoff = 1500;
+const BACKOFF_MAX = 12000;
 
 function classify(type) {
   if (type == null) return 'other';
@@ -56,7 +60,7 @@ function connect() {
   if (!key) return; // demo mode — no socket
   ws = new WebSocket(WS_URL);
   ws.on('open', () => {
-    backoff = 2000;
+    backoff = 1500;
     ws.send(JSON.stringify({
       APIKey: key,
       BoundingBoxes: [[[BBOX.s, BBOX.w], [BBOX.n, BBOX.e]]],
@@ -93,9 +97,12 @@ function connect() {
   ws.on('close', () => { connected = false; scheduleReconnect(); });
   ws.on('error', e => { connected = false; console.warn('[ais] ws error:', e.message); try { ws.close(); } catch {} });
 }
+let reconnectQueued = false;
 function scheduleReconnect() {
-  backoff = Math.min(backoff * 1.6, 60000);
-  setTimeout(connect, backoff);
+  if (reconnectQueued) return;            // error+close can both fire — dedupe
+  reconnectQueued = true;
+  backoff = Math.min(backoff * 1.4, BACKOFF_MAX);
+  setTimeout(() => { reconnectQueued = false; connect(); }, backoff);
 }
 
 /* ---- demo vessels (no key) ---- */
