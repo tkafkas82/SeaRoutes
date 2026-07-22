@@ -152,6 +152,7 @@ body {
 .dep-note { margin-right: 2px; }
 .alt-deps { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
 .alt-deps b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+.seg-note { font-style: italic; opacity: .85; }
 
 .empty {
   text-align: center; color: var(--muted); padding: 48px 20px; font-size: 15px;

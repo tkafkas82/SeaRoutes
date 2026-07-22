@@ -161,16 +161,25 @@ function card({ r, m }, via) {
   const fareLbl = via ? `<span class="fare-note">full route ${r.from} → ${r.to}:</span>` : '';
 
   const depMain = r.firstDep || '—';
-  const depLbl = via ? `<span class="dep-note">dep. ${r.from}</span>` : '';
+  // On via cards the departure time and total duration are the WHOLE route's
+  // (origin→destination) — the dataset has no per-stop times, so we can't give
+  // the boarding→destination figure. Label them plainly instead of implying
+  // they are the selected segment.
+  const depLbl = via ? `<span class="dep-note">full route · dep. ${r.from}</span>` : '';
+  const durPill = r.dur ? `<span class="dur-pill">${r.dur}${via ? ' full route' : ''}</span>` : '';
+  const segNote = via
+    ? `<div class="alt-deps seg-note">Time &amp; duration are for the whole route — per-stop times for your ports aren’t in the dataset.</div>`
+    : '';
   const altDeps = r.dep.length > 1
     ? `<div class="alt-deps">Departures${via ? ` from ${r.from}` : ''}: ${r.dep.map(t => `<b>${t}</b>`).join(', ')}</div>` : '';
 
   return `<article class="card" style="--op:${opColor(r.op)}">
     <div class="card-top">
       <span class="op-tag"><span class="dot" style="background:${opColor(r.op)}"></span>${r.op}</span>
-      <span class="times">${depLbl}<span class="dep-main">${depMain}</span>${r.dur ? `<span class="dur-pill">${r.dur}</span>` : ''}</span>
+      <span class="times">${depLbl}<span class="dep-main">${depMain}</span>${durPill}</span>
     </div>
     <div class="path">${path}</div>
+    ${segNote}
     ${altDeps}
     <div class="card-bottom">
       <span class="days">${days}</span>
