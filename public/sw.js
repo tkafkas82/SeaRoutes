@@ -1,7 +1,7 @@
 /* SeaRoutes service worker — offline-first cache of the static shell + data. */
-const CACHE = 'searoutes-v2';
+const CACHE = 'searoutes-v3';
 const ASSETS = [
-  '.', 'index.html', 'styles.css', 'app.js',
+  '.', 'index.html', 'styles.css', 'app.js', 'icon.svg',
   'manifest.webmanifest', 'data/routes.json', 'data/coastline.json'
 ];
 

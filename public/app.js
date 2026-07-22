@@ -1,6 +1,20 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
+
+/* ---------- splash ---------- */
+const SPLASH_T0 = (typeof performance !== 'undefined' ? performance.now() : 0);
+let splashGone = false;
+function hideSplash() {
+  if (splashGone) return; splashGone = true;
+  const wait = Math.max(0, 700 - ((typeof performance !== 'undefined' ? performance.now() : 700) - SPLASH_T0));
+  setTimeout(() => {
+    const sp = document.getElementById('splash');
+    if (sp) { sp.classList.add('hide'); setTimeout(() => sp.remove(), 550); }
+  }, wait);
+}
+// Safety net: never let the splash stick, even if init stalls.
+setTimeout(hideSplash, 4000);
 const state = { data: null, from: '', to: '', ops: new Set(), day: '', sort: 'dep' };
 
 /* ---------- Greek → Latin port labels ---------- */
@@ -357,6 +371,7 @@ async function init() {
     state.data = await fetch('data/routes.json').then(r => r.json());
   } catch (e) {
     $('#results').innerHTML = '<div class="empty">Could not load route data.</div>';
+    hideSplash();
     return;
   }
   $('#footNote').textContent =
@@ -368,6 +383,7 @@ async function init() {
   // A shared route link (?from=..) opens the routes tab; otherwise the live map.
   const wantRoutes = location.search.includes('from=') || location.search.includes('to=');
   showView(wantRoutes ? 'routes' : (localStorage.getItem('sr-view') || 'live'));
+  hideSplash();
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }

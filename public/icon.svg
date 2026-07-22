@@ -1,0 +1,48 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SeaRoutes">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16264a"/>
+      <stop offset="1" stop-color="#0b1020"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4cb1f2"/>
+      <stop offset="1" stop-color="#2b6fb0"/>
+    </linearGradient>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe6fb"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+
+  <!-- ferry -->
+  <g>
+    <!-- funnel -->
+    <rect x="214" y="150" width="42" height="70" rx="10" fill="#3ba0e8"/>
+    <rect x="214" y="168" width="42" height="16" fill="#e23b3b"/>
+    <!-- upper deck -->
+    <rect x="150" y="210" width="150" height="52" rx="12" fill="url(#hull)"/>
+    <!-- bridge / forward block -->
+    <path d="M300 224 h60 a10 10 0 0 1 9 6 l14 32 h-83 z" fill="#cdd8f0"/>
+    <!-- windows -->
+    <g fill="#2b6fb0">
+      <rect x="166" y="224" width="24" height="22" rx="5"/>
+      <rect x="198" y="224" width="24" height="22" rx="5"/>
+      <rect x="230" y="224" width="24" height="22" rx="5"/>
+      <rect x="262" y="224" width="24" height="22" rx="5"/>
+      <rect x="312" y="236" width="18" height="18" rx="4"/>
+      <rect x="336" y="236" width="18" height="18" rx="4"/>
+    </g>
+    <!-- hull -->
+    <path d="M116 262 H400 l-30 74 a34 34 0 0 1 -31 20 H177 a34 34 0 0 1 -31 -20 Z" fill="url(#hull)"/>
+    <!-- hull accent stripe -->
+    <path d="M116 262 H400 l-8 20 H124 Z" fill="#3ba0e8"/>
+  </g>
+
+  <!-- waves -->
+  <g fill="none" stroke="url(#sea)" stroke-width="17" stroke-linecap="round">
+    <path d="M92 386 q30 -26 60 0 t60 0 t60 0 t60 0 t60 0"/>
+    <path d="M104 428 q30 -26 60 0 t60 0 t60 0 t60 0 t60 0" opacity=".65"/>
+  </g>
+</svg>
