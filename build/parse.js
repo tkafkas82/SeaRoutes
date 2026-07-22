@@ -36,7 +36,37 @@ const ALIAS = {
   'ΦΟΛ/ΡΟΣ': 'ΦΟΛΕΓΑΝΔΡΟΣ',
   'ΦΟΛ/ΛΟΣ': 'ΦΟΛΕΓΑΝΔΡΟΣ',
   'ΔΙΑΦΙΑΝΙ': 'ΔΙΑΦΑΝΙ',
-  'ΣΑΝΤΟΡΙΝΗ': 'ΘΗΡΑ'   // same island/port — operators name it both ways
+  'ΣΑΝΤΟΡΙΝΗ': 'ΘΗΡΑ',   // same island/port — operators name it both ways
+  // source duplicates / typos → canonical
+  'ΑΓ.ΚΗΡΥΚΟΣ': 'ΑΓΙΟΣ ΚΗΡΥΚΟΣ',
+  'ΑΓΙΟΣ ΚΥΡΗΚΟΣ': 'ΑΓΙΟΣ ΚΗΡΥΚΟΣ',
+  'ΚΟΥΓΟΝΗΣΙΑ': 'ΚΟΥΦΟΝΗΣΙΑ',
+  'ΝΙΣΗΡΟΣ': 'ΝΙΣΥΡΟΣ',
+  'ΒΑΘΥ ΣΑΜΟΥ': 'ΒΑΘΥ'
+};
+
+// Canonical Greek port → Ferryhopper 3-letter code, for live deep-links into
+// ferryhopper.com/en/booking/results?itinerary=A,B&dates=YYYYMMDD. Harvested
+// from Ferryhopper's own booking links. Ports without a code (mostly Sporades/
+// mainland, outside this app's Cyclades focus) are simply omitted from the picker.
+const FH_CODE = {
+  'ΠΕΙΡΑΙΑΣ': 'PIR', 'ΛΑΥΡΙΟ': 'LAV', 'ΡΑΦΗΝΑ': 'RAF',
+  'ΚΥΘΝΟΣ': 'KYT', 'ΚΕΑ': 'KEA', 'ΣΕΡΙΦΟΣ': 'SER', 'ΣΙΦΝΟΣ': 'SIF',
+  'ΜΗΛΟΣ': 'MLO', 'ΚΙΜΩΛΟΣ': 'KMS', 'ΦΟΛΕΓΑΝΔΡΟΣ': 'FOL', 'ΣΙΚΙΝΟΣ': 'SIK',
+  'ΙΟΣ': 'IOS', 'ΘΗΡΑ': 'JTR', 'ΑΝΑΦΗ': 'ANA',
+  'ΠΑΡΟΣ': 'PAS', 'ΝΑΞΟΣ': 'JNX', 'ΣΥΡΟΣ': 'JSY', 'ΜΥΚΟΝΟΣ': 'JMK', 'ΤΗΝΟΣ': 'TIN',
+  'ΚΑΤΑΠΟΛΑ': 'AMO', 'ΑΙΓΙΑΛΗ': 'AIG', 'ΚΟΥΦΟΝΗΣΙΑ': 'KOU', 'ΔΟΝΟΥΣΑ': 'DON',
+  'ΣΧΟΙΝΟΥΣΑ': 'SXI', 'ΗΡΑΚΛΕΙΑ': 'IRK',
+  'ΗΡΑΚΛΕΙΟ': 'HER', 'ΧΑΝΙΑ': 'CHA', 'ΡΕΘΥΜΝΟ': 'RNO', 'ΣΗΤΕΙΑ': 'JSH', 'ΚΙΣΣΑΜΟΣ': 'KIS',
+  'ΡΟΔΟΣ': 'RHO', 'ΚΩΣ': 'KGS', 'ΚΑΛΥΜΝΟΣ': 'KAL', 'ΛΕΡΟΣ': 'LER', 'ΛΕΙΨΟΙ': 'LIP',
+  'ΠΑΤΜΟΣ': 'PMS', 'ΑΣΤΥΠΑΛΑΙΑ': 'JTY', 'ΝΙΣΥΡΟΣ': 'NIS', 'ΤΗΛΟΣ': 'THL', 'ΣΥΜΗ': 'SYM',
+  'ΚΑΡΠΑΘΟΣ': 'AOK', 'ΚΑΣΟΣ': 'KSJ', 'ΧΑΛΚΗ': 'CHL', 'ΔΙΑΦΑΝΙ': 'DFN', 'ΚΑΣΤΕΛΛΟΡΙΖΟ': 'KAZ',
+  'ΧΙΟΣ': 'CHI', 'ΜΥΤΙΛΗΝΗ': 'LES', 'ΨΑΡΑ': 'PHA', 'ΦΟΥΡΝΟΙ': 'FOU',
+  'ΑΓΙΟΣ ΚΗΡΥΚΟΣ': 'AGK', 'ΕΥΔΗΛΟΣ': 'EYD', 'ΚΑΡΛΟΒΑΣΙ': 'KAR', 'ΒΑΘΥ': 'BTH', 'ΣΑΜΟΣ': 'BTH',
+  'ΜΕΣΤΑ ΧΙΟΥ': 'MHI', 'ΣΙΓΡΙ ΛΕΣΒΟΥ': 'SIG',
+  'ΑΛΕΞΑΝΔΡΟΥΠΟΛΗ': 'AXL', 'ΣΑΜΟΘΡΑΚΗ': 'SAM', 'ΚΑΒΑΛΑ': 'KAV', 'ΛΗΜΝΟΣ': 'LMN',
+  'ΑΙΓΙΝΑ': 'AEG', 'ΥΔΡΑ': 'HYD', 'ΠΟΡΟΣ': 'POR', 'ΣΠΕΤΣΕΣ': 'SPE',
+  'ΕΡΜΙΟΝΗ': 'ERM', 'ΠΟΡΤΟ ΧΕΛΙ': 'PHE', 'ΑΓΚΙΣΤΡΙ(ΜΥΛΟΙ)': 'AGG'
 };
 function canon(raw) {
   let s = norm(raw);
@@ -150,12 +180,17 @@ for (const sheet of wb.SheetNames) {
 }
 
 const operators = Object.values(OPERATORS).map(o => ({ name: o.name, color: o.color }));
+const portCodes = {};
+for (const p of ports) if (FH_CODE[p]) portCodes[p] = FH_CODE[p];
+const missing = [...ports].filter(p => !FH_CODE[p]);
+if (missing.length) console.log('No Ferryhopper code (omitted from picker):', missing.join(', '));
 const out = {
   sourceYear: SOURCE_YEAR,
   source: 'National Access Point (data.gov.gr) — Information about Maritime Transport in Greece',
   builtRoutes: routes.length,
   operators,
   ports: [...ports].sort((a, b) => a.localeCompare(b, 'el')),
+  portCodes,   // canonical Greek name -> Ferryhopper code (for live search links)
   routes
 };
 fs.writeFileSync(OUT, JSON.stringify(out, null, 2), 'utf8');

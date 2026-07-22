@@ -48,48 +48,21 @@ function enLabel(gr) {
 const DAYS = [['ΔΕΥ','Mon'],['ΤΡΙ','Tue'],['ΤΕΤ','Wed'],['ΠΕΜ','Thu'],['ΠΑΡ','Fri'],['ΣΑΒ','Sat'],['ΚΥΡ','Sun']];
 const dayEn = gr => (DAYS.find(d => d[0] === gr) || [,''])[1];
 
-/* ---------- select population ---------- */
+/* ---------- select population (only ports Ferryhopper can search) ---------- */
+function codedPorts() { return state.data.ports.filter(p => state.data.portCodes[p]); }
 function fillPortSelect(sel, placeholder) {
   sel.innerHTML = `<option value="">${placeholder}</option>` +
-    state.data.ports.map(p => `<option value="${p}">${p} · ${enLabel(p)}</option>`).join('');
-}
-function fillDaySelect(sel) {
-  sel.innerHTML = `<option value="">Any day</option>` +
-    DAYS.map(d => `<option value="${d[0]}">${d[1]}</option>`).join('');
-}
-function renderOpChips() {
-  const wrap = $('#opChips');
-  wrap.innerHTML = '';
-  for (const op of state.data.operators) {
-    const chip = document.createElement('button');
-    chip.className = 'op-chip' + (state.ops.has(op.name) ? ' on' : '');
-    chip.innerHTML = `<span class="dot" style="background:${op.color}"></span>${op.name}`;
-    chip.onclick = () => { state.ops.has(op.name) ? state.ops.delete(op.name) : state.ops.add(op.name); renderOpChips(); render(); };
-    wrap.appendChild(chip);
-  }
+    codedPorts().map(p => `<option value="${p}">${p} · ${enLabel(p)}</option>`).join('');
 }
 const opColor = name => (state.data.operators.find(o => o.name === name) || {}).color || 'var(--accent)';
 
-/* ---------- matching ---------- */
+/* ---------- matching (for the 2023 reference hint) ---------- */
 // Returns null if no match, else { fi, ti } boarding/alighting indices in seq.
 function match(r) {
-  if (state.ops.size && !state.ops.has(r.op)) return null;
-  if (state.day && !r.days.includes(state.day)) return null;
   let fi = -1, ti = -1;
-  if (state.from) {
-    fi = r.seq.indexOf(state.from);
-    if (fi < 0) return null;
-  }
-  if (state.to) {
-    ti = r.seq.indexOf(state.to, fi >= 0 ? fi + 1 : 0);
-    if (ti < 0) return null;
-  }
+  if (state.from) { fi = r.seq.indexOf(state.from); if (fi < 0) return null; }
+  if (state.to) { ti = r.seq.indexOf(state.to, fi >= 0 ? fi + 1 : 0); if (ti < 0) return null; }
   return { fi, ti };
-}
-function sortKey(r) {
-  if (state.sort === 'dur') return r.durMin == null ? 1e9 : r.durMin;
-  if (state.sort === 'fare') return r.fareOneWay == null ? 1e9 : r.fareOneWay;
-  return r.firstDep ? +r.firstDep.replace(':', '') : 1e9;
 }
 
 /* ---------- URL sync (shareable links) ---------- */
@@ -97,108 +70,77 @@ function readUrl() {
   const q = new URLSearchParams(location.search);
   state.from = q.get('from') || '';
   state.to = q.get('to') || '';
-  state.day = q.get('day') || '';
-  state.sort = q.get('sort') || 'dep';
-  state.ops = new Set((q.get('ops') || '').split('|').filter(Boolean));
 }
 function writeUrl() {
   const q = new URLSearchParams();
   if (state.from) q.set('from', state.from);
   if (state.to) q.set('to', state.to);
-  if (state.day) q.set('day', state.day);
-  if (state.sort !== 'dep') q.set('sort', state.sort);
-  if (state.ops.size) q.set('ops', [...state.ops].join('|'));
   const qs = q.toString();
   history.replaceState(null, '', qs ? '?' + qs : location.pathname);
 }
 
-/* ---------- render ---------- */
-function render() {
-  writeUrl();
-  const box = $('#results');
-  const both = state.from && state.to;
-  const rows = [];
-  for (const r of state.data.routes) {
-    const m = match(r);
-    if (m) rows.push({ r, m });
-  }
-  rows.sort((a, b) => sortKey(a.r) - sortKey(b.r));
-
-  // stat line
-  $('#statbar').innerHTML =
-    `<b>${rows.length}</b> ${rows.length === 1 ? 'sailing' : 'sailings'}` +
-    (state.from || state.to ? ' match' : ` · <b>${state.data.ports.length}</b> ports · <b>${state.data.operators.length}</b> operators`);
-
-  if (!rows.length) {
-    box.innerHTML = `<div class="empty"><span class="big">⛴</span>${
-      state.from || state.to || state.ops.size || state.day
-        ? 'No sailings match. Try clearing a filter or picking different ports.'
-        : 'Pick a departure and/or arrival port to see ferry routes, times and fares.'}</div>`;
-    return;
-  }
-
-  if (both) {
-    const direct = rows.filter(x => x.r.from === state.from && x.r.to === state.to);
-    const via = rows.filter(x => !(x.r.from === state.from && x.r.to === state.to));
-    box.innerHTML =
-      (direct.length ? `<div class="group-head">Direct — ${enLabel(state.from)} → ${enLabel(state.to)}</div>` + direct.map(x => card(x, false)).join('') : '') +
-      (via.length ? `<div class="group-head">Along the way (board mid-route)</div>` + via.map(x => card(x, true)).join('') : '');
+/* ---------- Ferryhopper live-search deep link ---------- */
+function todayISO() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function updateFhButton() {
+  const btn = $('#fhBtn');
+  if (!btn) return;
+  const codes = state.data.portCodes;
+  const ready = state.from && state.to && state.from !== state.to && codes[state.from] && codes[state.to];
+  if (ready) {
+    const dv = ($('#dateSel') && $('#dateSel').value) || '';
+    const dates = dv ? dv.replace(/-/g, '') : '';   // YYYY-MM-DD -> YYYYMMDD
+    btn.href = `https://www.ferryhopper.com/en/booking/results?itinerary=${codes[state.from]},${codes[state.to]}`
+      + (dates ? `&dates=${dates}` : '');
+    btn.classList.remove('disabled'); btn.removeAttribute('aria-disabled');
+    btn.textContent = `Search ${enLabel(state.from)} → ${enLabel(state.to)} on Ferryhopper →`;
   } else {
-    box.innerHTML = rows.map(x => card(x, false)).join('');
+    btn.removeAttribute('href');
+    btn.classList.add('disabled'); btn.setAttribute('aria-disabled', 'true');
+    btn.textContent = state.from === state.to && state.from ? 'Choose two different ports' : 'Pick a From and To port';
   }
 }
 
-// via = the user's ports are a sub-segment of this route, so the route's single
-// published fare/departure are for its own origin→destination, not the segment.
-function card({ r, m }, via) {
-  const highlight = m.fi >= 0 || m.ti >= 0;
+/* ---------- render (routes launcher + 2023 reference) ---------- */
+function render() {
+  writeUrl();
+  updateFhButton();
+  const box = $('#results');
+  if (!box) return;
+  if (!(state.from && state.to)) {
+    box.innerHTML = `<div class="empty"><span class="big">⛴</span>Pick your departure and arrival port, then open Ferryhopper for live 2026 schedules &amp; prices.</div>`;
+    return;
+  }
+  const rows = [];
+  for (const r of state.data.routes) { const m = match(r); if (m) rows.push({ r, m }); }
+  if (!rows.length) {
+    box.innerHTML = `<div class="ref-head">No 2023 reference for this pair — check Ferryhopper above for current sailings.</div>`;
+    return;
+  }
+  const ops = [...new Set(rows.map(x => x.r.op))];
+  box.innerHTML =
+    `<div class="ref-head">2023 reference · ${rows.length} line${rows.length > 1 ? 's' : ''} connected these ports · ${ops.join(', ')}</div>` +
+    rows.slice(0, 12).map(refLine).join('') +
+    (rows.length > 12 ? `<div class="ref-head">…and ${rows.length - 12} more</div>` : '');
+}
+
+// Compact, honest reference: operator + call sequence, no (stale) times/fares.
+function refLine({ r, m }) {
   const path = r.seq.map((p, i) => {
-    const isEnd = (i === m.fi) || (i === m.ti) || (!highlight && (i === 0 || i === r.seq.length - 1));
-    const inSeg = highlight && m.fi >= 0 && m.ti >= 0 && i > m.fi && i < m.ti;
-    const cls = isEnd ? 'stop end' : (inSeg ? 'stop seg' : 'stop');
-    const chip = `<span class="${cls}">${p}${isEnd ? ` <small>${enLabel(p)}</small>` : ''}</span>`;
+    const end = i === m.fi || i === m.ti;
+    const seg = m.fi >= 0 && m.ti >= 0 && i > m.fi && i < m.ti;
+    const cls = end ? 'stop end' : (seg ? 'stop seg' : 'stop');
+    const chip = `<span class="${cls}">${p}</span>`;
     if (i === r.seq.length - 1) return chip;
-    const aSeg = highlight && m.fi >= 0 && m.ti >= 0 && i >= m.fi && i < m.ti;
+    const aSeg = m.fi >= 0 && m.ti >= 0 && i >= m.fi && i < m.ti;
     return chip + `<span class="arrow${aSeg ? ' seg' : ''}">→</span>`;
   }).join('');
-
-  const days = DAYS.map(([gr, en]) => {
-    const on = r.days.includes(gr);
-    const hl = state.day === gr;
-    return `<span class="day-pip${on ? ' on' : ''}${hl ? ' hl' : ''}" title="${en}">${en[0]}</span>`;
-  }).join('');
-
-  const fares = [];
-  if (r.fareOneWay != null) fares.push(`<span class="fare">one-way <b>€${r.fareOneWay}</b></span>`);
-  if (r.fareReturn != null) fares.push(`<span class="fare ret">return <b>€${r.fareReturn}</b></span>`);
-  // On via cards the fare/time belong to the whole route, so say so.
-  const fareLbl = via ? `<span class="fare-note">full route ${r.from} → ${r.to}:</span>` : '';
-
-  const depMain = r.firstDep || '—';
-  // On via cards the departure time and total duration are the WHOLE route's
-  // (origin→destination) — the dataset has no per-stop times, so we can't give
-  // the boarding→destination figure. Label them plainly instead of implying
-  // they are the selected segment.
-  const depLbl = via ? `<span class="dep-note">full route · dep. ${r.from}</span>` : '';
-  const durPill = r.dur ? `<span class="dur-pill">${r.dur}${via ? ' full route' : ''}</span>` : '';
-  const segNote = via
-    ? `<div class="alt-deps seg-note">Time &amp; duration are for the whole route — per-stop times for your ports aren’t in the dataset.</div>`
-    : '';
-  const altDeps = r.dep.length > 1
-    ? `<div class="alt-deps">Departures${via ? ` from ${r.from}` : ''}: ${r.dep.map(t => `<b>${t}</b>`).join(', ')}</div>` : '';
-
-  return `<article class="card" style="--op:${opColor(r.op)}">
-    <div class="card-top">
-      <span class="op-tag"><span class="dot" style="background:${opColor(r.op)}"></span>${r.op}</span>
-      <span class="times">${depLbl}<span class="dep-main">${depMain}</span>${durPill}</span>
-    </div>
+  const days = r.days.length ? `<span class="ref-days">${r.days.map(dayEn).join(' ')}</span>` : '';
+  return `<article class="ref-card" style="--op:${opColor(r.op)}">
+    <div class="op-tag"><span class="dot" style="background:${opColor(r.op)}"></span>${r.op}${days}</div>
     <div class="path">${path}</div>
-    ${segNote}
-    ${altDeps}
-    <div class="card-bottom">
-      <span class="days">${days}</span>
-      <span class="fares">${fareLbl}${fares.join('')}</span>
-    </div>
   </article>`;
 }
 
@@ -338,24 +280,17 @@ function showView(v) {
 
 /* ---------- wiring ---------- */
 function bind() {
-  const from = $('#fromSel'), to = $('#toSel'), day = $('#daySel'), sort = $('#sortSel');
-  fillPortSelect(from, 'Any port'); fillPortSelect(to, 'Any port'); fillDaySelect(day);
-  // reflect any state restored from the URL
-  from.value = state.from; to.value = state.to; day.value = state.day; sort.value = state.sort;
+  const from = $('#fromSel'), to = $('#toSel'), date = $('#dateSel');
+  fillPortSelect(from, 'From — pick a port'); fillPortSelect(to, 'To — pick a port');
+  from.value = state.from; to.value = state.to;          // reflect state restored from URL
+  if (date && !date.value) date.value = todayISO();
   from.onchange = () => { state.from = from.value; render(); };
   to.onchange = () => { state.to = to.value; render(); };
-  day.onchange = () => { state.day = day.value; render(); };
-  sort.onchange = () => { state.sort = sort.value; render(); };
+  if (date) date.onchange = updateFhButton;
   $('#swapBtn').onclick = () => {
     [state.from, state.to] = [state.to, state.from];
     from.value = state.from; to.value = state.to; render();
   };
-  $('#clearBtn').onclick = () => {
-    state.from = state.to = state.day = ''; state.ops.clear(); state.sort = 'dep';
-    from.value = to.value = day.value = ''; sort.value = 'dep';
-    renderOpChips(); render();
-  };
-  renderOpChips();
 }
 
 async function init() {
@@ -375,7 +310,7 @@ async function init() {
     return;
   }
   $('#footNote').textContent =
-    `Routes reference: ${state.data.routes.length} sailings · ${state.data.operators.length} operators · data ${state.data.sourceYear}.`;
+    `Live schedules & prices open on Ferryhopper. Routes reference: ${Object.keys(state.data.portCodes).length} ports · ${state.data.operators.length} operators (2023 data).`;
   readUrl();
   bind();
 

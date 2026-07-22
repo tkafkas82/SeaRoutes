@@ -7,10 +7,12 @@ Two things in one installable PWA:
    from **AIS** via [aisstream.io](https://aisstream.io). Boats are drawn on an
    inline SVG of the region, colored by type and oriented to their course; click
    one for name, speed, course, destination and last-seen.
-2. **Routes (2023 reference)** — search a From/To port and see which lines
-   connect where, with indicative times/days/fares. This is a **2023 snapshot**
-   from **[data.gov.gr](https://data.gov.gr)** — good for *which operator runs
-   the leg*, not for current schedules/prices.
+2. **Routes** — pick From / To / date and jump to **[Ferryhopper](https://www.ferryhopper.com)**
+   for **live 2026 schedules & prices** (there's no free API for those, so the app
+   deep-links into Ferryhopper's search: `booking/results?itinerary=A,B&dates=YYYYMMDD`
+   using a Greek-name → Ferryhopper-code map). Below the button, a compact **2023
+   reference** from **[data.gov.gr](https://data.gov.gr)** shows *which operators/lines
+   connect the two ports* (call sequence + days only — no stale times/prices).
 
 ## Live map setup (aisstream key)
 
@@ -65,10 +67,9 @@ this Node server for the server-side aisstream connection.
 - **Live map** — AIS vessel positions on an SVG of the Western Cyclades, colored
   by type (ferry/HSC/cargo/tanker), oriented to course; click for details. Polls
   every 8 s; server prunes vessels silent for 15 min.
-- **From / To port pickers** with Greek + Latin labels and a swap button.
-- **Connections through intermediate stops** — picking two ports also finds
-  sailings where you board mid-route (shown under "Along the way"), with the
-  boarding→alighting segment highlighted. Times/fares are labelled as the whole
-  route's (the dataset has no per-stop times).
-- Filter by **operator** and **day of week**; sort by departure, duration or fare.
+- **From / To port pickers** (Greek + Latin labels, swap button) limited to ports
+  Ferryhopper can search, plus a date field, feeding a live **Search on Ferryhopper** link.
+- **2023 reference** below the search: which operators connect the two ports and the
+  call sequence, with the boarding→alighting segment highlighted (no stale times/fares).
+- **Custom ferry icon** + animated **splash screen**.
 - Dark/light theme, shareable `?from=..&to=..` links, offline-capable, installable.

@@ -50,11 +50,11 @@
     </div>
   </section>
 
-  <!-- ============ ROUTES (2023 reference) ============ -->
+  <!-- ============ ROUTES — live search launcher ============ -->
   <div id="routesView" class="view" hidden>
     <div class="ref-banner">
-      Schedules &amp; fares below are a <strong>2023 snapshot</strong> from data.gov.gr — treat as a rough
-      reference for <em>which lines connect where</em>, not current times/prices. Always verify with the operator.
+      Pick a route to open <strong>live 2026 schedules &amp; prices</strong> on Ferryhopper. The list below is
+      a <em>2023 reference</em> for which lines connect where — indicative only, no current times/prices.
     </div>
     <section class="controls">
       <div class="port-row">
@@ -68,24 +68,14 @@
           <select id="toSel" aria-label="Arrival port"></select>
         </label>
       </div>
-      <div class="filter-row">
-        <div class="op-chips" id="opChips" aria-label="Operators"></div>
-        <label class="field day-field">
-          <span class="field-lbl">Day</span>
-          <select id="daySel" aria-label="Day of week"></select>
+      <div class="search-row">
+        <label class="field date-field">
+          <span class="field-lbl">Date</span>
+          <input type="date" id="dateSel" aria-label="Travel date" />
         </label>
-        <label class="field sort-field">
-          <span class="field-lbl">Sort</span>
-          <select id="sortSel" aria-label="Sort by">
-            <option value="dep">Departure time</option>
-            <option value="dur">Duration</option>
-            <option value="fare">Fare</option>
-          </select>
-        </label>
-        <button id="clearBtn" class="ghost-btn">Clear</button>
+        <a id="fhBtn" class="fh-btn disabled" target="_blank" rel="noopener" aria-disabled="true">Pick a From and To port</a>
       </div>
     </section>
-    <div class="statbar" id="statbar"></div>
     <main class="results" id="results"></main>
   </div>
 
