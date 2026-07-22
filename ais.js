@@ -33,6 +33,8 @@ function loadKey() {
 
 const vessels = new Map();   // mmsi -> { mmsi, name, type, lat, lon, sog, cog, heading, nav, ts }
 let connected = false;
+let everConnected = false;
+let lastError = null;
 let ws = null;
 // aisstream is a flaky beta: the WS handshake often 503s / hangs up and then
 // succeeds a couple of tries later. Retry briskly with a low cap so we catch an
@@ -66,7 +68,7 @@ function connect() {
       BoundingBoxes: [[[BBOX.s, BBOX.w], [BBOX.n, BBOX.e]]],
       FilterMessageTypes: ['PositionReport', 'ShipStaticData']
     }));
-    connected = true;
+    connected = true; everConnected = true; lastError = null;
     console.log('[ais] connected to aisstream, subscribed to Western Cyclades bbox');
   });
   ws.on('message', buf => {
@@ -95,7 +97,7 @@ function connect() {
     }
   });
   ws.on('close', () => { connected = false; scheduleReconnect(); });
-  ws.on('error', e => { connected = false; console.warn('[ais] ws error:', e.message); try { ws.close(); } catch {} });
+  ws.on('error', e => { connected = false; lastError = e.message; console.warn('[ais] ws error:', e.message); try { ws.close(); } catch {} });
 }
 let reconnectQueued = false;
 function scheduleReconnect() {
@@ -140,7 +142,10 @@ function getVessels() {
     if (now - v.ts > STALE_MS) { vessels.delete(v.mmsi); continue; }
     list.push(v);
   }
-  return { source: connected ? 'live' : 'connecting', updated: now, bbox: BBOX, vessels: list };
+  const source = connected ? 'live' : (everConnected ? 'reconnecting' : 'connecting');
+  // aisstream is a flaky beta; tell the UI when the feed is currently unreachable
+  const note = !connected && lastError ? 'aisstream unreachable — retrying' : null;
+  return { source, note, updated: now, bbox: BBOX, vessels: list };
 }
 
 function start() { connect(); }

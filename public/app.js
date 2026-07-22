@@ -299,7 +299,9 @@ async function refreshVessels() {
   const st = $('#liveStatus');
   const src = data.source;
   st.className = 'live-status ' + (src === 'live' ? 'live' : (src === 'demo' ? 'demo' : ''));
-  const srcTxt = src === 'live' ? 'live' : src === 'demo' ? 'demo data (no API key)' : 'connecting…';
+  const srcTxt = src === 'live' ? 'live'
+    : src === 'demo' ? 'demo data (no API key)'
+    : (data.note || (src === 'reconnecting' ? 'reconnecting…' : 'connecting…'));
   st.innerHTML = `<span class="dot"></span><b>${live.vessels.length}</b>&nbsp;vessels · ${srcTxt} · ${ago(data.updated)}`;
 }
 
